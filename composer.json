@@ -1,0 +1,17 @@
+{
+    "name": "smx/ksdump-php",
+    "autoload": {
+        "psr-4": {
+            "Smx\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Stefano Moioli",
+            "email": "smxdev4@gmail.com"
+        }
+    ],
+    "require": {
+        "kaitai-io/kaitai_struct_php_runtime": "dev-master"
+    }
+}
