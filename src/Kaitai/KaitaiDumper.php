@@ -11,7 +11,7 @@ class KaitaiDumper {
 	private array $result;
 	private KaitaiLogger $logger;
 	private ?int $strLimit = null;
-	private bool $onlyPrintable = false;
+	private bool $useHex = false;
 
 	public function __construct(ServiceContainer $ctx, string $outputDir, array $result){
 		$this->logger = $ctx->getService(ServicesKey::LOGGER);
@@ -23,8 +23,8 @@ class KaitaiDumper {
 		$this->strLimit = $limit;
 		return $this;
 	}
-	public function setOnlyPrintable(bool $toggle){
-		$this->onlyPrintable = $toggle;
+	public function useHexFormat(bool $toggle){
+		$this->useHex = $toggle;
 		return $this;
 	}
 
@@ -105,11 +105,13 @@ class KaitaiDumper {
 	}
 
 	private function formatPrimitive($thing){
-		if($this->onlyPrintable && !ctype_print($thing)){
-			$thing = '<UNPRINTABLE>';
-		}
-		if($this->strLimit !== null && is_string($thing) && strlen($thing) > $this->strLimit){
-			$thing = substr($thing, 0, $this->strLimit - 3) . "...";
+		if(is_string($thing)){
+			if($this->useHex && !ctype_print($thing) && strlen($thing) > 0){
+				$thing = "0x" . bin2hex($thing);
+			}
+			if($this->strLimit !== null && strlen($thing) > $this->strLimit){
+				$thing = substr($thing, 0, $this->strLimit) . "...";
+			}
 		}
 		return $thing;
 	}

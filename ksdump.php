@@ -9,13 +9,13 @@ use Smx\Kaitai\ServicesKey;
 require_once __DIR__ . '/vendor/autoload.php';
 
 if($argc < 4){
-    fwrite(STDERR, "Usage: {$argv[0]} -p -l [string limit] -r [require_file] <file.ksy> <binary> <output.json>");
+    fwrite(STDERR, "Usage: {$argv[0]} -x -l [string limit] -r [require_file] <file.ksy> <binary> <output.json>");
     exit(1);
 }
-$args = getopt('pl:r:', [], $optind);
+$args = getopt('xl:r:', [], $optind);
 $requireFile = $args['r'] ?? null;
 $strLimit = $args['l'] ?? null;
-$onlyPrintable = isset($args['p']);
+$useHex = isset($args['x']);
 
 $useRequireFile = false;
 if($requireFile !== null && file_exists($requireFile)){
@@ -41,7 +41,7 @@ $result = $kcf->run();
 fwrite($logOut, "Compilation OK\n");
 $kd = new KaitaiDumper($ctx, $outDir, $result);
 $kd->setStringLimit($strLimit);
-$kd->setOnlyPrintable($onlyPrintable);
+$kd->useHexFormat($useHex);
 
 $jsonTree = $kd->dumpKsy($ksyFile, $binFile);
 // $FIXME: use streaming json encoder
