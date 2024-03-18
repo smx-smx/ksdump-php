@@ -20,11 +20,22 @@ class KaitaiDumper {
 	private string $outputDir;
 	private array $result;
 	private KaitaiLogger $logger;
+	private ?int $strLimit = null;
+	private bool $onlyPrintable = false;
 
 	public function __construct(ServiceContainer $ctx, string $outputDir, array $result){
 		$this->logger = $ctx->getService(ServicesKey::LOGGER);
 		$this->outputDir = $outputDir;
 		$this->result = $result;
+	}
+
+	public function setStringLimit(?int $limit){
+		$this->strLimit = $limit;
+		return $this;
+	}
+	public function setOnlyPrintable(bool $toggle){
+		$this->onlyPrintable = $toggle;
+		return $this;
 	}
 
 	private function getMainClass(string $input){
@@ -104,7 +115,13 @@ class KaitaiDumper {
 	}
 
 	private function formatPrimitive($thing){
-		return json_encode($thing, JSON_INVALID_UTF8_SUBSTITUTE);
+		if($this->onlyPrintable && !ctype_print($thing)){
+			$thing = '<UNPRINTABLE>';
+		}
+		if($this->strLimit !== null && is_string($thing) && strlen($thing) > $this->strLimit){
+			$thing = substr($thing, 0, $this->strLimit - 3) . "...";
+		}
+		return $thing;
 	}
 
 	private function formatThing($thing){

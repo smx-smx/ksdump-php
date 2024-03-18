@@ -9,11 +9,13 @@ use Smx\Kaitai\ServicesKey;
 require_once __DIR__ . '/vendor/autoload.php';
 
 if($argc < 4){
-    fwrite(STDERR, "Usage: {$argv[0]} -r [require_file] <file.ksy> <binary> <output.json>");
+    fwrite(STDERR, "Usage: {$argv[0]} -p -l [string limit] -r [require_file] <file.ksy> <binary> <output.json>");
     exit(1);
 }
-$args = getopt('r:', [], $optind);
+$args = getopt('pl:r:', [], $optind);
 $requireFile = $args['r'] ?? null;
+$strLimit = $args['l'] ?? null;
+$onlyPrintable = isset($args['p']);
 
 $useRequireFile = false;
 if($requireFile !== null && file_exists($requireFile)){
@@ -38,9 +40,11 @@ $result = $kcf->run();
 
 fwrite($logOut, "Compilation OK\n");
 $kd = new KaitaiDumper($ctx, $outDir, $result);
+$kd->setStringLimit($strLimit);
+$kd->setOnlyPrintable($onlyPrintable);
 
 $jsonTree = $kd->dumpKsy($ksyFile, $binFile);
 // $FIXME: use streaming json encoder
 $jsonHandle = new SplFileObject($jsonFile, 'wb');
-$jsonHandle->fwrite(json_encode($jsonTree, JSON_PRETTY_PRINT));
+$jsonHandle->fwrite(json_encode($jsonTree, JSON_PRETTY_PRINT | JSON_INVALID_UTF8_SUBSTITUTE));
 $jsonHandle = null;
