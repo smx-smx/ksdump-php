@@ -3,18 +3,8 @@ namespace Smx\Kaitai;
 
 use InvalidArgumentException;
 use ReflectionClass;
-use ReflectionMethod;
 use ReflectionObject;
 use RuntimeException;
-
-class TreeNode {
-	public string $name;
-	public ?TreeNode $node;
-	public $value;
-	public function isPrimitive(){
-		return !is_array($this->value) && !is_object($this->value);
-	}
-}
 
 class KaitaiDumper {
 	private string $outputDir;
