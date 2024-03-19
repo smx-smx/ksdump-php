@@ -9,13 +9,14 @@ use Smx\Kaitai\ServicesKey;
 require_once __DIR__ . '/vendor/autoload.php';
 
 if($argc < 4){
-    fwrite(STDERR, "Usage: {$argv[0]} -x -l [string limit] -r [require_file] <file.ksy> <binary> <output.json>");
+    fwrite(STDERR, "Usage: {$argv[0]} -k -x -l [string limit] -r [require_file] <file.ksy> <binary> <output.json>");
     exit(1);
 }
-$args = getopt('xl:r:', [], $optind);
+$args = getopt('kxl:r:', [], $optind);
 $requireFile = $args['r'] ?? null;
 $strLimit = $args['l'] ?? null;
 $useHex = isset($args['x']);
+$keepGoing = isset($args['k']);
 
 $useRequireFile = false;
 if($requireFile !== null && file_exists($requireFile)){
@@ -40,6 +41,7 @@ $result = $kcf->run();
 
 fwrite($logOut, "Compilation OK\n");
 $kd = new KaitaiDumper($ctx, $outDir, $result);
+$kd->setKeepGoing($keepGoing);
 $kd->setStringLimit($strLimit);
 $kd->useHexFormat($useHex);
 

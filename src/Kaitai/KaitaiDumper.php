@@ -5,6 +5,7 @@ use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionObject;
 use RuntimeException;
+use Throwable;
 
 class KaitaiDumper {
 	private string $outputDir;
@@ -12,11 +13,17 @@ class KaitaiDumper {
 	private KaitaiLogger $logger;
 	private ?int $strLimit = null;
 	private bool $useHex = false;
+	private bool $keepGoing = false;
 
 	public function __construct(ServiceContainer $ctx, string $outputDir, array $result){
 		$this->logger = $ctx->getService(ServicesKey::LOGGER);
 		$this->outputDir = $outputDir;
 		$this->result = $result;
+	}
+
+	public function setKeepGoing(bool $keepGoing){
+		$this->keepGoing = $keepGoing;
+		return $this;
 	}
 
 	public function setStringLimit(?int $limit){
@@ -85,8 +92,19 @@ class KaitaiDumper {
 			$name = $meth->getName();
 			if(str_starts_with($name, '_')) continue;
 
-			$value = $item->{$name}();			
-			$json[$name] = $this->formatThing($value);
+			$klass = get_class($item);
+			if($klass === 'Kaitai\Struct\Stream') continue;
+
+			try {
+				$value = $item->{$name}();
+				$json[$name] = $this->formatThing($value);
+			} catch(Throwable $e){
+				$objName = $ro->getName();
+				print(" ==== ERROR in {$objName}:{$name}" . (($this->keepGoing) ? ", ignoring...\n" : "\n"));
+				if(!$this->keepGoing){
+					throw $e;
+				}
+			}
 			
 		}
 
