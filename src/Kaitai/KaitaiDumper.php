@@ -83,7 +83,7 @@ class KaitaiDumper {
 	private array $objects = [];
 	private array $jsonCache = [];
 
-	private function formatObject($item){
+	private function formatObject(string $itemPath, string $itemName, $item){
 		$hash = spl_object_hash($item);
 		if(isset($this->objects[$hash])){
 			return $this->jsonCache[$hash];
@@ -103,13 +103,18 @@ class KaitaiDumper {
 			$klass = get_class($item);
 			if($klass === 'Kaitai\Struct\Stream') continue;
 
+			$objName = $ro->getName();
+			$objPath = (strlen($itemPath) > 0)
+				? "{$itemPath} >> {$itemName}"
+				: $objName;
+
 			++$this->level;
 			try {
 				$value = $item->{$name}();
-				$json[$name] = $this->formatThing($value);
+				$json[$name] = $this->formatThing($objPath, $name, $value);
 			} catch(Throwable $e){
-				$objName = $ro->getName();
-				$errStr = " ==== ERROR in {$objName}:{$name}";
+				$childChain = str_replace('>>', "\n  >> ", $objPath);
+				$errStr = " ==== ERROR in {$objName}:{$name} -- \n{$childChain}";
 				print($errStr . (($this->keepGoing) ? ", ignoring...\n" : "\n"));
 				$json[$name] = "<{$errStr}>";
 				if(!$this->keepGoing){
@@ -123,19 +128,23 @@ class KaitaiDumper {
 		return $json;
 	}
 
-	private function formatArray($array){
+	private function formatArray(string $itemPath, string $arrayName, $array){
 		if(empty($array)) return;
 
 		$json = [];
-		foreach($array as $itm){
+		foreach($array as $i => $itm){
 			++$this->level;
-			$json[] = $this->formatThing($itm);
+			// denotes array access operation
+			// child name is the i-th array item index
+			$childPath = "{$itemPath} >> {$arrayName}[]";
+			$childName = ".[{$i}]";
+			$json[] = $this->formatThing($childPath, $childName, $itm);
 			--$this->level;
 		}
 		return $json;
 	}
 
-	private function formatPrimitive($thing){
+	private function formatPrimitive(string $thingName, $thing){
 		if(is_string($thing)){
 			if($this->useHex && !ctype_print($thing) && strlen($thing) > 0){
 				$thing = "0x" . bin2hex($thing);
@@ -147,23 +156,23 @@ class KaitaiDumper {
 		return $thing;
 	}
 
-	private function formatThing($thing){
+	private function formatThing(string $itemPath, string $thingName, $thing){
 		if($this->level > $this->maxDepth){
 			return '...';
 		}
 
 		if(is_object($thing)){
-			return $this->formatObject($thing);
+			return $this->formatObject($itemPath, $thingName, $thing);
 		} else if(is_array($thing)){
-			return $this->formatArray($thing);
+			return $this->formatArray($itemPath, $thingName, $thing);
 		} else {
-			return $this->formatPrimitive($thing);
+			return $this->formatPrimitive($thingName, $thing);
 		}
 	}
 
 	private function formatTree($obj, $out){
 		$this->level = 0;
-		return $this->formatThing($obj);
+		return $this->formatThing('', 'root', $obj);
 	}
 
 	public function dumpKsy(string $input, string $binFile){
