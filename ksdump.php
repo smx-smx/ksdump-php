@@ -6,17 +6,23 @@ use Smx\Kaitai\KaitaiLogger;
 use Smx\Kaitai\ServiceContainer;
 use Smx\Kaitai\ServicesKey;
 
+function tryParseInt(?string $str){
+	if($str === null) return null;
+	return intval($str);
+}
+
 require_once __DIR__ . '/vendor/autoload.php';
 
 if($argc < 4){
-    fwrite(STDERR, "Usage: {$argv[0]} -k -x -l [string limit] -r [require_file] <file.ksy> <binary> <output.json>");
+    fwrite(STDERR, "Usage: {$argv[0]} -d [max depth] -k -x -l [string limit] -r [require_file] <file.ksy> <binary> <output.json>");
     exit(1);
 }
-$args = getopt('kxl:r:', [], $optind);
+$args = getopt('kxl:d:r:', [], $optind);
 $requireFile = $args['r'] ?? null;
-$strLimit = $args['l'] ?? null;
+$strLimit = tryParseInt($args['l'] ?? null);
 $useHex = isset($args['x']);
 $keepGoing = isset($args['k']);
+$maxDepth = tryParseInt($args['d'] ?? null);
 
 $useRequireFile = false;
 if($requireFile !== null && file_exists($requireFile)){
@@ -40,10 +46,11 @@ $outDir = $kcf->getOutputDirectory();
 $result = $kcf->run();
 
 fwrite($logOut, "Compilation OK\n");
-$kd = new KaitaiDumper($ctx, $outDir, $result);
-$kd->setKeepGoing($keepGoing);
-$kd->setStringLimit($strLimit);
-$kd->useHexFormat($useHex);
+$kd = (new KaitaiDumper($ctx, $outDir, $result))
+	->setKeepGoing($keepGoing)
+	->setStringLimit($strLimit)
+	->setMaxDepth($maxDepth)
+	->useHexFormat($useHex);
 
 $jsonTree = $kd->dumpKsy($ksyFile, $binFile);
 // $FIXME: use streaming json encoder

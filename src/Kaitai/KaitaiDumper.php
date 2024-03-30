@@ -11,6 +11,7 @@ class KaitaiDumper {
 	private string $outputDir;
 	private array $result;
 	private KaitaiLogger $logger;
+	private ?int $maxDepth = null;
 	private ?int $strLimit = null;
 	private bool $useHex = false;
 	private bool $keepGoing = false;
@@ -30,6 +31,12 @@ class KaitaiDumper {
 		$this->strLimit = $limit;
 		return $this;
 	}
+
+	public function setMaxDepth(?int $maxDepth){
+		$this->maxDepth = $maxDepth;
+		return $this;
+	}
+
 	public function useHexFormat(bool $toggle){
 		$this->useHex = $toggle;
 		return $this;
@@ -72,6 +79,7 @@ class KaitaiDumper {
 		return new ReflectionClass($main_class_name);
 	}
 
+	private int $level = 0;
 	private array $objects = [];
 	private array $jsonCache = [];
 
@@ -95,17 +103,20 @@ class KaitaiDumper {
 			$klass = get_class($item);
 			if($klass === 'Kaitai\Struct\Stream') continue;
 
+			++$this->level;
 			try {
 				$value = $item->{$name}();
 				$json[$name] = $this->formatThing($value);
 			} catch(Throwable $e){
 				$objName = $ro->getName();
-				print(" ==== ERROR in {$objName}:{$name}" . (($this->keepGoing) ? ", ignoring...\n" : "\n"));
+				$errStr = " ==== ERROR in {$objName}:{$name}";
+				print($errStr . (($this->keepGoing) ? ", ignoring...\n" : "\n"));
+				$json[$name] = "<{$errStr}>";
 				if(!$this->keepGoing){
 					throw $e;
 				}
 			}
-			
+			--$this->level;
 		}
 
 		$this->jsonCache[$hash] = $json;
@@ -117,7 +128,9 @@ class KaitaiDumper {
 
 		$json = [];
 		foreach($array as $itm){
+			++$this->level;
 			$json[] = $this->formatThing($itm);
+			--$this->level;
 		}
 		return $json;
 	}
@@ -135,6 +148,10 @@ class KaitaiDumper {
 	}
 
 	private function formatThing($thing){
+		if($this->level > $this->maxDepth){
+			return '...';
+		}
+
 		if(is_object($thing)){
 			return $this->formatObject($thing);
 		} else if(is_array($thing)){
@@ -145,6 +162,7 @@ class KaitaiDumper {
 	}
 
 	private function formatTree($obj, $out){
+		$this->level = 0;
 		return $this->formatThing($obj);
 	}
 
