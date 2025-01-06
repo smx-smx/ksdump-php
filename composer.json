@@ -2,7 +2,7 @@
     "name": "smx/ksdump-php",
     "autoload": {
         "psr-4": {
-            "Smx\\": "src/"
+            "Smx\\KaitaiPdb\\": "src/"
         }
     },
     "authors": [
@@ -12,6 +12,6 @@
         }
     ],
     "require": {
-        "kaitai-io/kaitai_struct_php_runtime": "dev-master"
+        "kaitai-io/kaitai_struct_php_runtime": "dev-master#e21bc2a3824f1a2b37588c191596b67cb4ba03ba"
     }
 }
